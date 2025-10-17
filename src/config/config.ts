@@ -77,4 +77,4 @@ class LoggerConfigManager {
   }
 }
 
-export const Config = new LoggerConfigManager();
+export const loggerConfig = new LoggerConfigManager();

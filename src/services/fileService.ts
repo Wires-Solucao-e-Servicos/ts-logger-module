@@ -1,7 +1,7 @@
 import * as path from 'path';
 import * as fs from 'fs';
-import { Config } from '../config/config';
-import { loggerEmail } from './emailService';
+import { loggerConfig as Config } from '../config/config';
+import { loggerMailer } from './emailService';
 
 export class FileService {
   private _filename: string = '';
@@ -77,8 +77,8 @@ export class FileService {
     if (now - this._lastEmailSent >= this._emailThrottleMs) {
       this._lastEmailSent = now;
 
-      if (loggerEmail.isReady) {
-        await loggerEmail.sendErrorMail(code, module, text);
+      if (loggerMailer.isReady) {
+        await loggerMailer.sendErrorMail(code, module, text);
       }
     }
   }

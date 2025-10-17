@@ -1,5 +1,5 @@
 import nodemailer from 'nodemailer';
-import { Config } from '../config/config';
+import { loggerConfig as Config } from '../config/config';
 
 export class EmailService {
   private _smtpReady: boolean = false;
@@ -97,4 +97,4 @@ export class EmailService {
   }
 }
 
-export const loggerEmail = new EmailService();
+export const loggerMailer = new EmailService();
