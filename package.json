@@ -1,18 +1,35 @@
 {
   "name": "ts-logger-module",
-  "module": "index.ts",
+  "version": "1.0.0",
+  "private": false,
+  "description": "A comprehensive TypeScript logging module with file-based logging and email notification capabilities.",
+  "homepage": "https://github.com/Wires-Solucao-e-Servicos/ts-logger-module#readme",
+  "bugs": {
+    "url": "https://github.com/Wires-Solucao-e-Servicos/ts-logger-module/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Wires-Solucao-e-Servicos/ts-logger-module.git"
+  },
+  "files": [
+    "build",
+    "README.md"
+  ],
+  "license": "ISC",
+  "author": "vinicaloise",
   "type": "module",
-  "private": true,
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "nodemailer": "^7.0.9"
+  },
   "devDependencies": {
     "@types/bun": "latest",
     "@types/nodemailer": "^7.0.2",
     "prettier": "^3.6.2"
   },
   "peerDependencies": {
-    "typescript": "^5"
-  },
-  "dependencies": {
-    "dotenv": "^17.2.3",
-    "nodemailer": "^7.0.9"
+    "typescript": "^5.9.3"
   }
 }
