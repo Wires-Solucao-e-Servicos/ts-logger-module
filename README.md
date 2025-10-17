@@ -1,6 +1,6 @@
 # TypeScript Logger Module
 
-A comprehensive TypeScript logging module with file-based logging and email notification capabilities via SMTP.
+A comprehensive TypeScript logging module with file-based logging and email notification capabilities.
 
 ## Features
 
@@ -17,7 +17,7 @@ A comprehensive TypeScript logging module with file-based logging and email noti
 ## Installation
 
 ```bash
-bun install nodemailer
+npm install ts-logger-module
 ```
 
 ## Quick Start
@@ -54,6 +54,28 @@ src/
 └── index.ts                      # Main exports
 ```
 
+## Exports
+
+The module exports four main items:
+
+```typescript
+export * from './interfaces/interfaces'; // TypeScript interfaces
+export { logger } from './services/fileService'; // Logger instance
+export { loggerConfig } from './config/config'; // Configuration manager
+export { loggerMailer } from './services/emailService'; // Email service
+```
+
+### Available Imports
+
+```typescript
+import {
+  logger, // Main logger instance
+  loggerConfig, // Configuration access
+  loggerMailer, // Email service
+  SMTPConfig, // SMTP configuration interface
+} from 'ts-logger-module';
+```
+
 ## Configuration
 
 ### Environment Variables
@@ -82,6 +104,7 @@ The logger auto-initializes on first use. No additional setup needed.
 ### Core Functions
 
 #### `logger.info(code, module, text)`
+
 Logs informational messages.
 
 ```typescript
@@ -89,6 +112,7 @@ logger.info('APP_001', 'Application', 'Application started');
 ```
 
 #### `logger.warn(code, module, text)`
+
 Logs warning messages.
 
 ```typescript
@@ -96,6 +120,7 @@ logger.warn('CONFIG_DEFAULT', 'Configuration', 'Using default settings');
 ```
 
 #### `logger.debug(code, module, text)`
+
 Logs debug messages.
 
 ```typescript
@@ -103,6 +128,7 @@ logger.debug('DEBUG_001', 'Cache', 'Cache miss detected');
 ```
 
 #### `logger.error(code, module, text)`
+
 Logs error messages and automatically sends email notification if SMTP is configured.
 
 ```typescript
@@ -112,6 +138,7 @@ logger.error('DB_001', 'Database', 'Connection failed to primary server');
 ### Configuration Functions
 
 #### `logger.emailThrottle`
+
 Set custom email throttle interval (in milliseconds). Default is 60000 (1 minute).
 
 ```typescript
@@ -137,11 +164,13 @@ Example:
 The logger automatically creates logs in:
 
 **Windows:**
+
 ```
 C:\Users\YourUsername\MyApplication\log.txt
 ```
 
 **macOS/Linux:**
+
 ```
 ~/MyApplication/log.txt
 ```
@@ -169,11 +198,13 @@ __________________________________________________
 When an error is logged and SMTP is properly configured, an email is automatically sent with the following format:
 
 **Subject:**
+
 ```
 [MyApplication] Error Alert - DB_001
 ```
 
 **Body:**
+
 ```html
 <h2>Error Report</h2>
 <p><strong>Client:</strong> MyApplication</p>
@@ -202,16 +233,16 @@ logger.emailThrottle = 300000;
 ### Basic Application Logging
 
 ```typescript
-import { logger } from './services/fileService';
+import { logger } from 'ts-logger-module';
 
 async function main() {
   try {
     logger.info('APP_START', 'Main', 'Application initializing');
-    
+
     // Your application code
     const data = await fetchData();
     logger.info('DATA_FETCH', 'Main', 'Data fetched successfully');
-    
+
     logger.debug('PROCESS_END', 'Main', 'Application cleanup');
   } catch (error) {
     logger.error('APP_CRITICAL', 'Main', (error as Error).message);
@@ -229,10 +260,10 @@ import { logger } from './services/fileService';
 async function connectDatabase() {
   try {
     logger.debug('DB_CONNECT_ATTEMPT', 'Database', 'Attempting connection');
-    
+
     const connection = await db.connect();
     logger.info('DB_CONNECTED', 'Database', 'Connected successfully');
-    
+
     return connection;
   } catch (error) {
     logger.error('DB_CONNECTION_ERROR', 'Database', (error as Error).message);
@@ -249,15 +280,30 @@ import { logger } from './services/fileService';
 async function handleRequest(req, res) {
   try {
     logger.debug('API_REQUEST', 'Handler', `POST /api/users`);
-    
+
     const result = await processRequest(req);
     logger.info('API_SUCCESS', 'Handler', 'Request processed');
-    
+
     res.json(result);
   } catch (error) {
     logger.error('API_ERROR', 'Handler', (error as Error).message);
     res.status(500).json({ error: 'Internal server error' });
   }
+}
+```
+
+## Interfaces
+
+### SMTPConfig
+
+```typescript
+interface SMTPConfig {
+  to: string;
+  from: string;
+  server: string;
+  port: number;
+  username: string;
+  password: string;
 }
 ```
 
@@ -298,6 +344,7 @@ The logger includes comprehensive error handling:
 **Issue:** Errors are logged but no emails are sent.
 
 **Solution:** Ensure all SMTP environment variables are set:
+
 - `SMTP_SERVER`
 - `SMTP_PORT`
 - `SMTP_USERNAME`
@@ -305,12 +352,21 @@ The logger includes comprehensive error handling:
 - `SMTP_FROM`
 - `SMTP_TO`
 
+Verify with:
+
+```typescript
+import { loggerConfig } from 'ts-logger-module';
+
+console.log('SMTP Enabled:', loggerConfig.smtpEnabled);
+console.log('SMTP Config:', loggerConfig.smtpConfig);
+
 ### Email Not Sending
 
 **Issue:** Email configuration seems correct but emails aren't being sent.
 
 **Solution:** Check that:
-1. Less than 1 minute (default throttle) has passed since the last error email
+
+1. At least 1 minute (default throttle) has passed since the last error email
 2. The SMTP credentials are correct
 3. The server allows connections on the specified port
 4. Gmail users have enabled "Less secure app access" or use an App Password
@@ -320,15 +376,16 @@ The logger includes comprehensive error handling:
 **Issue:** No log file is being created.
 
 **Solution:** Ensure:
+
 1. The home directory is accessible and writable
-2. The CLIENT_NAME environment variable is set
-3. The application has write permissions to the home directory
+2. The application has write permissions to the home directory
 
 ## Author
 
-Wires Solução e Serviços  
+Wires Solução e Serviços
 Email: vinicius@wires.com.br
 
 ---
 
 © 2025 Wires Solução e Serviços. All rights reserved.
+```
