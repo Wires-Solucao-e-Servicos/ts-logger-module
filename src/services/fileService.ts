@@ -1,7 +1,7 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import { loggerConfig as Config } from '../config/config';
-import { loggerMailer } from './emailService';
+import { loggerMailer as Mailer } from './emailService';
 
 export class FileService {
   private _filename: string = '';
@@ -13,11 +13,11 @@ export class FileService {
     this.init();
   }
 
-  set emailThrottle(ms: number) {
+  set throttle(ms: number) {
     this._emailThrottleMs = ms;
   }
 
-  getFormattedDate(date: Date = new Date()): string {
+  private getFormattedDate(date: Date = new Date()): string {
     const pad = (num: number) => num.toString().padStart(2, '0');
     const d = pad(date.getDate());
     const m = pad(date.getMonth() + 1);
@@ -34,8 +34,8 @@ export class FileService {
     }
 
     try {
-      fs.mkdirSync(Config.loggerDirectory, { recursive: true });
-      this._filename = path.join(Config.loggerDirectory, 'log.txt');
+      fs.mkdirSync(Config.directory, { recursive: true });
+      this._filename = path.join(Config.directory, 'log.txt');
 
       const separator = '\n' + '_'.repeat(50) + '\n\n';
       const fileContent = `${separator}[${Config.clientName}] [${this.getFormattedDate()}] Logger successfully initialized.\n`;
@@ -43,13 +43,13 @@ export class FileService {
       fs.appendFileSync(this._filename, fileContent);
       this._initialized = true;
     } catch (error) {
-      console.error('Error initializing logger:', (error as Error).message);
+      console.error('error initializing logger:', (error as Error).message);
     }
   }
 
   private log(level: string, code: string, module: string, text: string): void {
     if (!this._initialized) {
-      console.warn('Logger not initialized. Call init() first.');
+      console.warn('logger not initialized. Call init() first.');
       return;
     }
 
@@ -57,7 +57,7 @@ export class FileService {
       const line = `[${Config.clientName}] [${this.getFormattedDate()}] [${level}] [${code}] [${module}]: ${text}\n`;
       fs.appendFileSync(this._filename, line);
     } catch (error) {
-      console.error('Logger write fail:', (error as Error).message);
+      console.error('logger write fail:', (error as Error).message);
     }
   }
 
@@ -65,7 +65,7 @@ export class FileService {
     this.log('INFO', code, module, text);
   }
 
-  async error(code: string, module: string, text: string) {
+  error(code: string, module: string, text: string): void {
     this.log('ERROR', code, module, text);
 
     if (!Config.smtpEnabled) {
@@ -77,8 +77,8 @@ export class FileService {
     if (now - this._lastEmailSent >= this._emailThrottleMs) {
       this._lastEmailSent = now;
 
-      if (loggerMailer.isReady) {
-        await loggerMailer.sendErrorMail(code, module, text);
+      if (Mailer.isReady) {
+        Mailer.sendErrorMail(code, module, text).catch((error) => console.error('logger failed to send error email:', (error as Error).message));
       }
     }
   }
@@ -92,4 +92,12 @@ export class FileService {
   }
 }
 
-export const logger = new FileService();
+const loggerInstance = new FileService();
+
+(loggerInstance as any).config = Config;
+(loggerInstance as any).mailer = Mailer;
+
+export const logger = loggerInstance as typeof loggerInstance & {
+  config: typeof Config;
+  mailer: typeof Mailer;
+};
