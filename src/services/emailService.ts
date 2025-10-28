@@ -33,8 +33,8 @@ export class EmailService {
           user: Config.smtpConfig.username,
           pass: Config.smtpConfig.password,
         },
-        // debug: true,
-        // logger: true,
+        debug: Config.debug,
+        logger: Config.debug,
       });
 
       this._smtpReady = true;
@@ -70,28 +70,6 @@ export class EmailService {
       return;
     } catch (error) {
       console.error(`Failed to send error email: ${(error as Error).message}`);
-      return;
-    }
-  }
-
-  async sendCustomMail(to: string, subject: string, htmlContent: string) {
-    if (!this._smtpReady || !this._transporter || !Config.smtpConfig) {
-      console.error('Failed to send custom email: SMTP not configured.');
-      return;
-    }
-
-    const emailContent = {
-      from: `"${Config.clientName}" <${Config.smtpConfig.from}>`,
-      to: to,
-      subject: subject,
-      html: htmlContent,
-    };
-
-    try {
-      await this._transporter.sendMail(emailContent);
-      return;
-    } catch (error) {
-      console.error(`Failed to send custom email: ${(error as Error).message}`);
       return;
     }
   }
