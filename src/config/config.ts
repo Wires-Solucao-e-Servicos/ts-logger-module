@@ -6,16 +6,19 @@ import { type SMTPConfig } from '../interfaces/interfaces';
 class LoggerConfigManager {
   private baseDir: string = os.homedir();
   private _clientName: string;
+  private _filename: string;
   private _loggerDirectory: string;
 
   private _smtpConfig: SMTPConfig | null = null;
   private _smtpEnabled: boolean = false;
+  private _smtpDebug: boolean = false;
 
   constructor() {
     this._clientName = process.env.CLIENT_NAME || 'Typescript Logger';
     this._loggerDirectory = path.join(this.baseDir, this._clientName);
 
     this.configSMTP();
+    this._filename = this.filename;
   }
 
   private configSMTP(): void {
@@ -39,6 +42,8 @@ class LoggerConfigManager {
       return;
     }
 
+    const secure = port === 465 ? true : false;
+
     this._smtpConfig = {
       to,
       from,
@@ -46,6 +51,7 @@ class LoggerConfigManager {
       port,
       username,
       password,
+      secure,
     };
     this._smtpEnabled = true;
   }
@@ -60,11 +66,11 @@ class LoggerConfigManager {
     this._loggerDirectory = path.join(this.baseDir, this._clientName);
   }
 
-  get loggerDirectory(): string {
+  get directory(): string {
     return this._loggerDirectory;
   }
 
-  set loggerDirectory(directory: string) {
+  set directory(directory: string) {
     this._loggerDirectory = directory;
   }
 
@@ -74,6 +80,24 @@ class LoggerConfigManager {
 
   get smtpEnabled(): boolean {
     return this._smtpEnabled;
+  }
+
+  set debug(status: boolean) {
+    this._smtpDebug = status;
+  }
+
+  get debug(): boolean {
+    return this._smtpDebug;
+  }
+
+  get filename() {
+    const now = new Date();
+    const year = now.getFullYear();
+
+    const monthNameEN = now.toLocaleString('en-US', { month: 'short' });
+    const monthName = monthNameEN.toLowerCase();
+
+    return `log-${year}-${monthName}.txt`;
   }
 }
 
