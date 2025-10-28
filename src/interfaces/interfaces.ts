@@ -5,4 +5,5 @@ export interface SMTPConfig {
   host: string;
   username: string;
   password: string;
+  secure: boolean;
 }
