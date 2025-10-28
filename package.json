@@ -1,6 +1,6 @@
 {
   "name": "ts-logger-module",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": false,
   "description": "A comprehensive TypeScript logging module with file-based logging and email notification capabilities.",
   "homepage": "https://github.com/Wires-Solucao-e-Servicos/ts-logger-module#readme",
