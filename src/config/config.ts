@@ -12,6 +12,9 @@ class LoggerConfigManager {
   private _smtpConfig: SMTPConfig | null = null;
   private _smtpEnabled: boolean = false;
   private _smtpDebug: boolean = false;
+  private _emailThrottleMs: number = 60000;
+
+  private _maxFilecount: number = 30;
 
   constructor() {
     this._clientName = process.env.CLIENT_NAME || 'Typescript Logger';
@@ -97,7 +100,21 @@ class LoggerConfigManager {
     const monthNameEN = now.toLocaleString('en-US', { month: 'short' });
     const monthName = monthNameEN.toLowerCase();
 
-    return `log-${year}-${monthName}.txt`;
+    const day = now.getDate();
+
+    return `log-${year}-${monthName}-${day}.txt`;
+  }
+
+  set maxFilecount(count: number) {
+    this._maxFilecount = count;
+  }
+
+  set throttle(ms: number) {
+    this._emailThrottleMs = ms;
+  }
+
+  get throttle(): number {
+    return this._emailThrottleMs;
   }
 }
 
