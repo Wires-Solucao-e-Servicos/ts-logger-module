@@ -1,5 +1,6 @@
-import * as path from 'path';
 import * as fs from 'fs';
+import * as path from 'path';
+
 import { loggerConfig as Config } from '../config/config';
 import { loggerMailer as Mailer } from './emailService';
 
@@ -7,14 +8,9 @@ export class FileService {
   private _filename: string = '';
   private _initialized: boolean = false;
   private _lastEmailSent: number = 0;
-  private _emailThrottleMs: number = 60000;
 
   constructor() {
     this.init();
-  }
-
-  set throttle(ms: number) {
-    this._emailThrottleMs = ms;
   }
 
   private getFormattedDate(date: Date = new Date()): string {
@@ -28,14 +24,45 @@ export class FileService {
     return `${d}/${m}/${y} ${h}:${min}:${s}`;
   }
 
+  private rotateLogFiles(): void {
+    try {
+      const files = fs.readdirSync(Config.directory);
+
+      const logFiles = files
+        .filter((file) => file.toLowerCase().endsWith('.txt'))
+        .map((file) => ({
+          name: file,
+          path: path.join(Config.directory, file),
+          mtime: fs.statSync(path.join(Config.directory, file)).mtime.getTime(),
+        }))
+        .sort((a, b) => b.mtime - a.mtime);
+
+      if (logFiles.length > Config.maxFilecount) {
+        const filesToDelete = logFiles.slice(Config.maxFilecount);
+
+        filesToDelete.forEach((file) => {
+          try {
+            fs.unlinkSync(file.path);
+          } catch (error) {
+            console.error(`failed to delete log file ${file.name}:`, (error as Error).message);
+          }
+        });
+      }
+    } catch (error) {
+      console.error('logger cleanup fail:', (error as Error).message);
+    }
+  }
+
   private init(): void {
     if (this._initialized) {
       return;
     }
 
     try {
+      this.rotateLogFiles();
+
       fs.mkdirSync(Config.directory, { recursive: true });
-      this._filename = path.join(Config.directory, 'log.txt');
+      this._filename = path.join(Config.directory, Config.filename);
 
       const separator = '\n' + '_'.repeat(50) + '\n\n';
       const fileContent = `${separator}[${Config.clientName}] [${this.getFormattedDate()}] Logger successfully initialized.\n`;
@@ -74,7 +101,7 @@ export class FileService {
 
     const now = Date.now();
 
-    if (now - this._lastEmailSent >= this._emailThrottleMs) {
+    if (now - this._lastEmailSent >= Config.throttle) {
       this._lastEmailSent = now;
 
       if (Mailer.isReady) {
