@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import * as fsp from 'fs/promises';
 
 import { loggerConfig as Config } from '../config/config';
 import { loggerMailer as Mailer } from './emailService';
@@ -7,10 +8,12 @@ import { loggerMailer as Mailer } from './emailService';
 export class FileService {
   private _filename: string = '';
   private _initialized: boolean = false;
+
+  private _currentDay: number = 0;
   private _lastEmailSent: number = 0;
 
   constructor() {
-    this.init();
+    this.initLogger();
   }
 
   private getFormattedDate(date: Date = new Date()): string {
@@ -24,45 +27,84 @@ export class FileService {
     return `${d}/${m}/${y} ${h}:${min}:${s}`;
   }
 
-  private rotateLogFiles(): void {
-    try {
-      const files = fs.readdirSync(Config.directory);
+  private formatFilename(): string {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
 
-      const logFiles = files
-        .filter((file) => file.toLowerCase().endsWith('.txt'))
-        .map((file) => ({
-          name: file,
-          path: path.join(Config.directory, file),
-          mtime: fs.statSync(path.join(Config.directory, file)).mtime.getTime(),
-        }))
-        .sort((a, b) => b.mtime - a.mtime);
+    this._currentDay = now.getDate();
+    return `log-${year}-${month}-${day}.txt`;
+  }
+
+  private async rotate(): Promise<void> {
+    try {
+      const files = await fsp.readdir(Config.directory);
+
+      const logFilesPromises = files
+        .filter((file) => file.endsWith('.txt'))
+        .map(async (file) => {
+          const filePath = path.join(Config.directory, file);
+          const stats = await fsp.stat(filePath);
+          return {
+            name: file,
+            path: filePath,
+            mtime: stats.mtime.getTime(),
+          };
+        });
+
+      const logFiles = (await Promise.all(logFilesPromises)).sort((a, b) => b.mtime - a.mtime);
 
       if (logFiles.length > Config.maxFilecount) {
         const filesToDelete = logFiles.slice(Config.maxFilecount);
 
-        filesToDelete.forEach((file) => {
-          try {
-            fs.unlinkSync(file.path);
-          } catch (error) {
-            console.error(`failed to delete log file ${file.name}:`, (error as Error).message);
-          }
-        });
+        await Promise.allSettled(
+          filesToDelete.map(async (file) => {
+            try {
+              await fsp.unlink(file.path);
+            } catch (error) {
+              console.error(`failed to delete log file ${file.name}:`, (error as Error).message);
+            }
+          })
+        );
       }
     } catch (error) {
       console.error('logger cleanup fail:', (error as Error).message);
     }
   }
 
-  private init(): void {
+  private checkRotation() {
+    const today = new Date().getDate();
+
+    if (today === this._currentDay) {
+      return;
+    }
+
+    try {
+      fs.mkdirSync(Config.directory, { recursive: true });
+      this._filename = path.join(Config.directory, this.formatFilename());
+
+      const separator = '\n' + '_'.repeat(50) + '\n\n';
+      const fileContent = `${separator}[${Config.clientName}] [${this.getFormattedDate()}] Logger successfully initialized.\n`;
+
+      fs.appendFileSync(this._filename, fileContent);
+
+      this.rotate().catch((error) => console.error('error rotating logger: ', error));
+    } catch (error) {
+      console.error('error checking logger rotation:', error);
+    }
+  }
+
+  private initLogger(): void {
     if (this._initialized) {
       return;
     }
 
     try {
-      this.rotateLogFiles();
+      const newFilename = this.formatFilename();
 
       fs.mkdirSync(Config.directory, { recursive: true });
-      this._filename = path.join(Config.directory, Config.filename);
+      this._filename = path.join(Config.directory, newFilename);
 
       const separator = '\n' + '_'.repeat(50) + '\n\n';
       const fileContent = `${separator}[${Config.clientName}] [${this.getFormattedDate()}] Logger successfully initialized.\n`;
@@ -70,21 +112,27 @@ export class FileService {
       fs.appendFileSync(this._filename, fileContent);
       this._initialized = true;
     } catch (error) {
-      console.error('error initializing logger:', (error as Error).message);
+      console.error('[critical] error initializing logger:', (error as Error).message);
     }
   }
 
   private log(level: string, code: string, module: string, text: string): void {
     if (!this._initialized) {
-      console.warn('logger not initialized. Call init() first.');
+      console.warn('[warning] logger not initialized. skipping log');
       return;
     }
+
+    this.checkRotation();
 
     try {
       const line = `[${Config.clientName}] [${this.getFormattedDate()}] [${level}] [${code}] [${module}]: ${text}\n`;
       fs.appendFileSync(this._filename, line);
+
+      if (Config.console) {
+        console.log(line);
+      }
     } catch (error) {
-      console.error('logger write fail:', (error as Error).message);
+      console.error('[error] logger write fail:', (error as Error).message);
     }
   }
 
@@ -105,7 +153,9 @@ export class FileService {
       this._lastEmailSent = now;
 
       if (Mailer.isReady) {
-        Mailer.sendErrorMail(code, module, text).catch((error) => console.error('logger failed to send error email:', (error as Error).message));
+        Mailer.sendErrorMail(code, module, text).catch((error) =>
+          console.warn('[warning] logger failed to send error email:', (error as Error).message)
+        );
       }
     }
   }
