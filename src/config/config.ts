@@ -4,9 +4,11 @@ import path from 'path';
 import { type SMTPConfig } from '../interfaces/interfaces';
 
 class LoggerConfigManager {
-  private baseDir: string = os.homedir();
+  private _console: boolean = true;
+
   private _clientName: string;
-  private _filename: string;
+
+  private baseDir: string = os.homedir();
   private _loggerDirectory: string;
 
   private _smtpConfig: SMTPConfig | null = null;
@@ -20,11 +22,10 @@ class LoggerConfigManager {
     this._clientName = process.env.CLIENT_NAME || 'Typescript Logger';
     this._loggerDirectory = path.join(this.baseDir, this._clientName);
 
-    this.configSMTP();
-    this._filename = this.filename;
+    this.initConfig();
   }
 
-  private configSMTP(): void {
+  private initConfig(): void {
     const to = process.env.SMTP_TO;
     const from = process.env.SMTP_FROM;
     const host = process.env.SMTP_HOST;
@@ -57,6 +58,14 @@ class LoggerConfigManager {
       secure,
     };
     this._smtpEnabled = true;
+  }
+
+  get console(): boolean {
+    return this._console;
+  }
+
+  set console(status: boolean) {
+    this._console = status;
   }
 
   get clientName(): string {
@@ -93,20 +102,12 @@ class LoggerConfigManager {
     return this._smtpDebug;
   }
 
-  get filename() {
-    const now = new Date();
-    const year = now.getFullYear();
-
-    const monthNameEN = now.toLocaleString('en-US', { month: 'short' });
-    const monthName = monthNameEN.toLowerCase();
-
-    const day = now.getDate();
-
-    return `log-${year}-${monthName}-${day}.txt`;
-  }
-
   set maxFilecount(count: number) {
     this._maxFilecount = count;
+  }
+
+  get maxFilecount(): number {
+    return this._maxFilecount;
   }
 
   set throttle(ms: number) {
